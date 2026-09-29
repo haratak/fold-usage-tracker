@@ -21,18 +21,26 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install SDK packages
         run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager --install "platforms;android-37.2" "build-tools;37.0.0"
+          set -euo pipefail
+          SDK="${RUNNER_TEMP}/android-sdk"
+          mkdir -p "${SDK}/cmdline-tools"
+          curl -fsSL -o /tmp/commandlinetools.zip "https://dl.google.com/android/repository/commandlinetools-linux-16111833_latest.zip"
+          unzip -q /tmp/commandlinetools.zip -d /tmp/commandlinetools
+          mv /tmp/commandlinetools/cmdline-tools "${SDK}/cmdline-tools/latest"
+          echo "ANDROID_HOME=${SDK}" >> "${GITHUB_ENV}"
+          echo "ANDROID_SDK_ROOT=${SDK}" >> "${GITHUB_ENV}"
+          yes | "${SDK}/cmdline-tools/latest/bin/sdkmanager" --sdk_root="${SDK}" --licenses >/dev/null || true
+          "${SDK}/cmdline-tools/latest/bin/sdkmanager" --sdk_root="${SDK}" \
+            "platforms;android-37.2" \
+            "build-tools;37.0.0" \
+            "platform-tools"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
